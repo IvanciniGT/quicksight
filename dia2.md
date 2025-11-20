@@ -193,3 +193,103 @@ Boulder Dash: Rocks!	DS	        2007	Puzzle	    10TACLE Studios	    NA	        0
 Boulder Dash: Rocks!	DS	        2007	Puzzle	    10TACLE Studios	    JP	        0,03
 Boulder Dash: Rocks!	NES	        2007	Puzzle	    10TACLE Studios	    0	        0,03
 
+---
+
+Tenemos 2 opciones a la hora de traer los datos a quicksight:
+- Trabajar con Spice 
+- No trabajar con Spice (Direct query)
+
+
+No será lo mismo si yo manualmente subo un fichero...
+  En este caso, como podría actualizar QuickSight los datos Automáticamente? NO PUEDE
+  Seré yo quien tenga que subir el fichero manualmente cada vez que quiera actualizar los datos.
+Que si le pido a quicksight que vaya a un bucket S3 y coja de ahí un fichero.
+  En cambio, quicksight puede ir automáticamente a ese bucket S3 y traer los datos nuevos que hubiera (si lo hay)
+   Esto podré programarlo en el tiempo (Cada hora, ve al bucket S3 y trae los datos nuevos que haya)
+
+Esto mismo es lo que me pasará cuando trabaje con una BBDD.
+   Quicksight puede a tal fecha ir a la BBDD y traer los datos que haya en ese momento.
+   Pero puedo programar actualizaciones automáticas cada X tiempo.
+      Los jueves ve a la BBDD y trae los datos nuevos que haya.
+
+En esos casos.. en cualquiera de ellos, quick sight lo que está haciendo es IMPORTAR (Copiar) los datos a su motor SPICE.
+   Y trabajar con ellos ahí dentro.
+
+Hay otra opción... Cuando QuickSight tiene la posibilidad de ir a algún sitio a por datos (S3, BBDD, etc)
+   Le puedo decir que NO los importe a SPICE.
+   Si no que cada vez que esos datos sean necesarios (los quiero ver en un panel, análisis, etc), puedo decirle que vaya en tiempo real a por ellos.
+   Esto es trabajar en modo DIRECT QUERY.
+
+Cada una de esas opciones tiene sus ventajas y desventajas.
+Trabajar con SPICE:
+- Velocidad.... Impresionante
+  - Evito comunicaciones (con sus latencias) continuamente con la fuente de datos.
+  - Los datos se cocinan una sola vez (solo una vez les aplico el proceso de preparación de datos).
+  - Los datos que al final se muestran en los paneles y análisis (Medias, medianas, recuentos...) quedan guardados en caché en SPICE.
+- Inconvenientes:
+  - No tengo datos en tiempo real .. esto no es problema en BI en la mayoría de los casos.
+    - Damos por supuesto que no trabajamos con datos en tiempo real. PARA ESTO, Hay otras herramientas. ElasticSearch/Kibana (ELK)
+  - Más pasta que pago a Amazon... por almacenamiento en Spice
+No trabajar con SPICE (Direct Query):
+- Ventajas:
+  - Datos en tiempo real
+  - Menos pasta que pago a Amazon... por almacenamiento en Spice
+- Inconvenientes:
+  - Los paneles y los análisis se vuelven mucho más lentos en calcularse.
+  - Si cambia la estructura de datos en origen, problema.
+  - Más pasta en computo. Y Al final esto, puede ser más caro que pagar por almacenamiento en SPICE.
+
+miportal.miempresa.com/PanelGeneral
+    <iframe
+        width="960"
+        height="720"
+        src="https://us-east-1.quicksight.aws.amazon.com/sn/embed/share/accounts/820634527231/dashboards/cbb088ae-c11a-4a09-9c63-0ec53287c5fa?directory_alias=Formacion">
+    </iframe>
+
+
+   Panel  <<  Análisis    > Compartir (edición/visualización)
+     v          v
+   Conjunto de datos      > Compartir (edición / visualización ) (Flujo de obtención/procesamiento de datos)
+          v
+        Datos             > Puedo aplicar restricciones a nivel de fila y de columna
+
+Restricciones a nivel de columna = FACILES
+
+Restricciones a nivel de fila = MAS COMPLEJO
+   - Usuario/Grupo = Sencillo -> Dificulta el mantenimiento / centralizado en el conjunto de datos de reglas
+   - Etiquetas     = Compleja -> Permite mantenimiento más sencillo / descentralizado
+     De hecho es algo que vosotros SOLOS NO PODRÉIS HACER.  
+
+---
+
+# Quicksight y usuarios....
+
+Los usuarios de quicksight, los tengo que tener registrados en Quicksight.
+Ese registro lo puedo automatizar en parte, si tengo un repositorio de usuarios en mi organización (LDAP, ActiveDirectory, IAM, etc)
+Además puedo delegar la autenticación de usuarios.
+
+Identificación    Decir quien soy
+Autenticación     Comprobar que eres quien dices ser (contraseña, mfa, etc)
+Autorización.     Sabiendo que eres quien dices ser, saber que puedes hacer
+
+En ese ActiveDirectory/LDAP, además de mi nombre de usuario/contraseña, puedo tener otras propiedades asignadas.
+Por ejemplo:
+- Departamento
+- País
+- Géneros dee videojuegos a los que tengo acceso
+- Países de los que puedo ver datos
+- ...
+
+Cuando QuickSight solicita a uno de esos repositorios de usuarios que me autentique, puede traer esas propiedades adicionales: ETIQUETAS
+
+---
+
+
+Columna	Etiqueta	Delimitador	Coincidir con todo	
+Género    gen        |            GEN_*
+ ^
+ Aventura                         GEN_Aventura
+
+
+Valor de la etiqueta en la llamada al panel de quicksight, podrían pasar:
+ gen=GEN_Aventura|GEN_Deportes
